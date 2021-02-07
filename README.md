@@ -9,7 +9,7 @@ As inspiration and rough layout serves the [example of crypto-modified ichimoku 
 
 Sample Generated Image:
 
-![Ichimoku Sample Code](https://github.com/viorell91/ichimoku-crypto/blob/master/sample-data/sample_ibm.png "Ichimoku Crypto Python/Matplotlib")
+![Ichimoku Sample Code](https://github.com/viorell91/ichimoku-cloud/blob/main/sample-data/sample_ibm.png "Ichimoku Cloud IBM Plot")
 
 
 ## Telegram Group
