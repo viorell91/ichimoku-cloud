@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from typing import Tuple
 import pandas as pd
 from datetime import datetime
 import matplotlib.dates as mdates
@@ -7,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import decimal
 import mplfinance as mpf
+import time
 
 
 class Ichimoku():
@@ -70,9 +72,21 @@ class Ichimoku():
         lines = self.plot_ichimoku_lines(df, ax)
         self.plot_ichimoku_cloud(df,ax)
         
+        date_1 = datetime(2020, 11, 26) 
+        date_2 = datetime(2021, 1, 26) 
+
         mpf.plot(df,type='candle',style='yahoo',ax=ax,addplot=lines,show_nontrading=True)
         self.pretty_plot(fig, ax)
-        plt.show()
+
+        red_cloud_intervals = self.get_pre_red_cloud_intervals(df)
+        fig.savefig('alltimeplot.png')
+        for interval in red_cloud_intervals:
+            interval_date_start = interval[0].date()
+            interval_date_stop = interval[1].date()
+            ax.set_xlim([interval_date_start, interval_date_stop])
+            fig.savefig('plot'+str(interval_date_start)+'.png')
+            # plt.show()
+
 
     def pretty_plot(self, fig, ax):
         ax.legend()
@@ -106,6 +120,39 @@ class Ichimoku():
         mpf.make_addplot(df['chikou_span'],ax=ax, width=.7)]
         
         return ap
+
+    def get_pre_red_cloud_intervals(self, df):
+
+        red_cloud_values = df['senkou_span_b'] > df['senkou_span_a']
+
+        red_df = pd.DataFrame({'Date':red_cloud_values.index, 'isRed':red_cloud_values})
+        red_df = red_df.reset_index(drop=True)
+
+        ranges = self.get_sorted_red_cloud_interval_indexes(red_df, 5)
+
+        filtered_indexes = list(filter(lambda x: len(x) > 25, ranges))
+
+        intervals = [(df['Date'].iloc[r.start], df['Date'].iloc[r.stop]) for r in filtered_indexes]
+
+        return intervals
+
+    def get_sorted_red_cloud_interval_indexes(self, red_df, offset):
+        red_cloud_start_index = ""
+        red_cloud_end_index = ""
+        ranges = []
+
+        for index, row in red_df.iterrows():
+            if row['isRed'] == True and not red_cloud_start_index and index > offset:
+                red_cloud_start_index = index - offset
+            if row['isRed'] == False and red_cloud_start_index and not red_cloud_end_index:
+                red_cloud_end_index = index - offset
+                ranges.append(range(red_cloud_start_index,red_cloud_end_index)) 
+                red_cloud_start_index = ""
+                red_cloud_end_index = ""
+       
+        ranges.sort(key=len, reverse=True)
+
+        return ranges
 
     # Range generator for decimals
     def drange(self, x, y, jump): 
