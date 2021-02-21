@@ -83,6 +83,14 @@ class Ichimoku():
         for interval in red_cloud_intervals:
             interval_date_start = interval[0].date()
             interval_date_stop = interval[1].date()
+
+            price = df[pd.Timestamp(interval_date_start):pd.Timestamp(interval_date_stop)][['Open', 'Close']]
+            max_price = price.max().max()
+            min_price = price.min().min()
+            max_price_norm = max_price + (max_price*20/100)
+            min_price_norm = min_price - (min_price*20/100)
+
+            ax.set_ylim([min_price_norm, max_price_norm])
             ax.set_xlim([interval_date_start, interval_date_stop])
             fig.savefig('plot'+str(interval_date_start)+'.png')
             # plt.show()
@@ -98,7 +106,7 @@ class Ichimoku():
         ax.tick_params(axis='x', size=14)
         ax.tick_params(axis='y', size=14)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-        fig.tight_layout()
+       # fig.tight_layout()
         ax.autoscale_view()
 
     def plot_ichimoku_cloud(self, df, ax):
