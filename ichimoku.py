@@ -72,9 +72,6 @@ class Ichimoku():
         lines = self.plot_ichimoku_lines(df, ax)
         self.plot_ichimoku_cloud(df,ax)
         
-        date_1 = datetime(2020, 11, 26) 
-        date_2 = datetime(2021, 1, 26) 
-
         mpf.plot(df,type='candle',style='yahoo',ax=ax,addplot=lines,show_nontrading=True)
         self.pretty_plot(fig, ax)
 
@@ -87,8 +84,8 @@ class Ichimoku():
             price = df[pd.Timestamp(interval_date_start):pd.Timestamp(interval_date_stop)][['Open', 'Close']]
             max_price = price.max().max()
             min_price = price.min().min()
-            max_price_norm = max_price + (max_price*20/100)
-            min_price_norm = min_price - (min_price*20/100)
+            max_price_norm = max_price + (max_price*10/100)
+            min_price_norm = min_price - (min_price*10/100)
 
             ax.set_ylim([min_price_norm, max_price_norm])
             ax.set_xlim([interval_date_start, interval_date_stop])
@@ -136,27 +133,46 @@ class Ichimoku():
         red_df = pd.DataFrame({'Date':red_cloud_values.index, 'isRed':red_cloud_values})
         red_df = red_df.reset_index(drop=True)
 
-        ranges = self.get_sorted_red_cloud_interval_indexes(red_df, 5)
+        ranges = self.get_sorted_red_cloud_interval_indexes(red_df)
 
         filtered_indexes = list(filter(lambda x: len(x) > 25, ranges))
 
-        intervals = [(df['Date'].iloc[r.start], df['Date'].iloc[r.stop]) for r in filtered_indexes]
+        intervals = [(df['Date'].iloc[r.start-45], df['Date'].iloc[r.start-15]) for r in filtered_indexes if r.start>=45]
 
         return intervals
 
-    def get_sorted_red_cloud_interval_indexes(self, red_df, offset):
+    def get_sorted_red_cloud_interval_indexes(self, red_df):
         red_cloud_start_index = ""
         red_cloud_end_index = ""
         ranges = []
 
         for index, row in red_df.iterrows():
-            if row['isRed'] == True and not red_cloud_start_index and index > offset:
-                red_cloud_start_index = index - offset
+            if row['isRed'] == True and not red_cloud_start_index:
+                red_cloud_start_index = index
             if row['isRed'] == False and red_cloud_start_index and not red_cloud_end_index:
-                red_cloud_end_index = index - offset
+                red_cloud_end_index = index
                 ranges.append(range(red_cloud_start_index,red_cloud_end_index)) 
                 red_cloud_start_index = ""
                 red_cloud_end_index = ""
+       
+        ranges.sort(key=len, reverse=True)
+
+        return ranges
+
+    def get_sorted_pre_red_cloud_interval_indexes(self, red_df, offset):
+        red_cloud_start_index = ""
+        pre_red_cloud_end_index = red_cloud_start_index
+        ranges = []
+
+        for index, row in red_df.iterrows():
+            if row['isRed'] == True and not red_cloud_start_index and index > offset:
+                red_cloud_start_index = index
+            if row['isRed'] == False and red_cloud_start_index and not pre_red_cloud_end_index:
+                pre_red_cloud_end_index = red_cloud_start_index - 5
+                pre_red_cloud_start_index = pre_red_cloud_end_index - offset
+                ranges.append(range(pre_red_cloud_start_index,pre_red_cloud_end_index)) 
+                red_cloud_start_index = ""
+                pre_red_cloud_end_index = ""
        
         ranges.sort(key=len, reverse=True)
 
