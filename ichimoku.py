@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from typing import Tuple
 import pandas as pd
 from datetime import datetime
 import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
-import numpy as np
 import decimal
 import mplfinance as mpf
-import time
 
 
 class Ichimoku():
@@ -67,47 +63,54 @@ class Ichimoku():
         # consider the cloud displacement of 26 days and senkou_span_b displacement (52 days)
         df = self.ohcl_df.iloc[80:,:]
 
-        fig, axlist = mpf.plot(df,type='candle',style='yahoo',figratio=(18,8),show_nontrading=True,returnfig=True)
-        ax = axlist[0]
+        fig, ax = self.plot_ichimoku_elements(df)
+        self.pretty_plot(ax, df['Company Name'][0])
 
-        lines = self.plot_ichimoku_lines(df, ax)
-        self.plot_ichimoku_cloud(df,ax)
-        
-        mpf.plot(df,type='candle',style='yahoo',ax=ax,addplot=lines,show_nontrading=True)
-        self.pretty_plot(fig, ax)
+        fig.savefig('alltimeplot.png', bbox_inches='tight', pad_inches=0.2)
 
         red_cloud_intervals = self.get_pre_relevant_cloud_intervals_by_type(df,'red')
         green_cloud_intervals = self.get_pre_relevant_cloud_intervals_by_type(df,'green')
-        fig.savefig('alltimeplot.png')
+
         self.save_relevant_cloud_figures(df, fig, ax, red_cloud_intervals, 'red')
         self.save_relevant_cloud_figures(df, fig, ax, green_cloud_intervals, 'green')
+
+    def plot_ichimoku_elements(self, df):
+        fig, axlist = mpf.plot(df,type='candle',style='yahoo',figratio=(18,8),show_nontrading=True,returnfig=True)
+        ax = axlist[0]
+        lines = self.plot_ichimoku_lines(df, ax)
+        self.plot_ichimoku_cloud(df,ax)
+        mpf.plot(df,type='candle',style='yahoo',ax=ax,addplot=lines,show_nontrading=True)
+        return fig,ax
 
     def save_relevant_cloud_figures(self, df, fig, ax, relevant_cloud_intervals, cloud_type):
         for interval in relevant_cloud_intervals:
             interval_date_start = interval[0].date()
-            interval_date_stop = interval[1].date()
-            price = df[pd.Timestamp(interval_date_start):pd.Timestamp(interval_date_stop)][['Open', 'Close']]
-            max_price = price.max().max()
-            min_price = price.min().min()
-            max_price_norm = max_price + (max_price*10/100)
-            min_price_norm = min_price - (min_price*10/100)
-            ax.set_ylim([min_price_norm, max_price_norm])
-            ax.set_xlim([interval_date_start, interval_date_stop])
-            fig.savefig('pre-'+cloud_type+'-plot'+str(interval_date_start)+'.png')
+            interval_date_chikou_stop = interval[1].date()
+            interval_date_present = interval[2].date()
+            interval_date_stop = interval[3].date()
 
+            relevant_df = df[pd.Timestamp(interval_date_start):pd.Timestamp(interval_date_stop)].copy()
+            relevant_df.loc[pd.Timestamp(interval_date_chikou_stop):pd.Timestamp(interval_date_stop),['chikou_span']] = float('nan')
+            relevant_df.loc[pd.Timestamp(interval_date_present):pd.Timestamp(interval_date_stop),['kijun_sen','tenkan_sen', 'Open','Close','High','Low']] = float('nan')
 
-    def pretty_plot(self, fig, ax):
-        ax.legend()
-        fig.autofmt_xdate()
-        ax.xaxis_date()
+            fig, ax = self.plot_ichimoku_elements(relevant_df)
 
-        ax.grid(linestyle='-', linewidth='0.5')
-        ax.yaxis.tick_right()
-        ax.tick_params(axis='x', size=14)
-        ax.tick_params(axis='y', size=14)
+            self.format_relevant_plot(ax, relevant_df)
+            
+            fig.savefig('pre-'+cloud_type+'-plot'+str(interval_date_start)+'.png',bbox_inches='tight', pad_inches=0)
+
+    def format_relevant_plot(self, ax, relevant_df):
+        max_price = relevant_df[['Close','Open']].max().max()
+        min_price = relevant_df[['Close','Open']].min().min()
+        max_price_norm = max_price + (max_price*10/100)
+        min_price_norm = min_price - (min_price*10/100)
+        ax.set_ylim([min_price_norm, max_price_norm])
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-       # fig.tight_layout()
-        ax.autoscale_view()
+
+
+    def pretty_plot(self, ax, title):
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        ax.set_title('Ichimoku Cloud Chart for '+ title)
 
     def plot_ichimoku_cloud(self, df, ax):
         date_axis = df.index
@@ -141,13 +144,13 @@ class Ichimoku():
         filtered_indexes = list(filter(lambda x: len(x) > self.INTERVAL_LENGTH_THRESHOLD, ranges))
 
         if cloud_type == 'red':
-            intervals = [(df['Date'].iloc[r.start-40], df['Date'].iloc[r.start-10]) 
+            intervals = [(df['Date'].iloc[r.start-78], df['Date'].iloc[r.start-52], df['Date'].iloc[r.start-26], df['Date'].iloc[r.start]) 
                 for r in filtered_indexes 
-                if r.start>=40 and not red_df['isRed'].iloc[r.start-40]]
+                if r.start>=78] #and not red_df['isRed'].iloc[r.start-52]]
         else: 
-            intervals = [(df['Date'].iloc[r.start-40], df['Date'].iloc[r.start-10]) 
+            intervals = [(df['Date'].iloc[r.start-78], df['Date'].iloc[r.start-52], df['Date'].iloc[r.start-26], df['Date'].iloc[r.start]) 
                 for r in filtered_indexes 
-                if r.start>=40 and red_df['isRed'].iloc[r.start-40]]
+                if r.start>=78] #and red_df['isRed'].iloc[r.start-52]]
 
         return intervals
 
