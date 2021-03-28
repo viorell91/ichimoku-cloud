@@ -1,22 +1,35 @@
 from ichimoku import *
 from utils import *
 import yfinance as yf
-import pandas as pd
+import matplotlib.pyplot as plt
 
-ticker = yf.Ticker('PFE')
-period_with_displacement = get_period_with_displacement('9mo')
-df = ticker.history(period=period_with_displacement)
+def plot_ichimoku_for_ticker(ticker_symbol, period):
 
-df.drop(['Dividends','Stock Splits'], inplace=True, axis=1)
-df.reset_index(inplace=True)
-df.set_index('Date', inplace=True)
-df['Date'] = df.index
-# store ticker's long name to be used in the plot title
-df['Company Name'] = ticker.info['longName']
+    ticker = yf.Ticker(ticker_symbol)
 
-# Initialize with ohcl dataframe
-i = Ichimoku(df)
-# Generates ichimoku dataframe
-ichimoku_df = i.run()
-# Plot ichimoku
-i.plot()
+    period_with_displacement = get_period_with_displacement(period)
+    df = ticker.history(period=period_with_displacement)
+    if df.empty:
+        return
+    df.drop(['Dividends','Stock Splits'], inplace=True, axis=1)
+    df.reset_index(inplace=True)
+    df.set_index('Date', inplace=True)
+    df['Date'] = df.index
+    # store ticker's long name to be used in the plot title
+    df['Company Name'] = ticker.info['longName']
+    # Initialize with ohcl dataframe
+    i = Ichimoku(df)
+    # Generates ichimoku dataframe
+    i.run()
+    # Plot ichimoku
+    i.plot()
+    plt.close('all')
+
+with open("resources/S&P500.txt") as fp:
+    ticker_symbols = fp.read().splitlines()
+    symbols_count = len(ticker_symbols)
+    count=0
+    for symbol in ticker_symbols:
+        count += 1
+        plot_ichimoku_for_ticker(symbol, '5y')
+        print('Processed '+symbol+' ('+str(count)+' of '+str(symbols_count)+')')
