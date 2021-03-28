@@ -2,3 +2,5 @@
 *.lock
 Pipefile
 .vscode
+/ml_dataset
+/ichimoku_plots
