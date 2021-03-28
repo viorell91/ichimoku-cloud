@@ -5,6 +5,8 @@ from datetime import datetime
 import matplotlib.dates as mdates
 import decimal
 import mplfinance as mpf
+from utils import *
+import matplotlib.pyplot as plt
 
 
 class Ichimoku():
@@ -41,7 +43,7 @@ class Ichimoku():
         # Tenkan 
         tenkan_sen_high = ohcl_df['High'].rolling( window=tenkan_window ).max()
         tenkan_sen_low = ohcl_df['Low'].rolling( window=tenkan_window ).min()
-        ohcl_df['tenkan_sen'] = (tenkan_sen_high + tenkan_sen_low) /2
+        ohcl_df['tenkan_sen'] = (tenkan_sen_high + tenkan_sen_low) / 2
         # Kijun 
         kijun_sen_high = ohcl_df['High'].rolling( window=kijun_window ).max()
         kijun_sen_low = ohcl_df['Low'].rolling( window=kijun_window ).min()
@@ -64,9 +66,14 @@ class Ichimoku():
         df = self.ohcl_df.iloc[80:,:]
 
         fig, ax = self.plot_ichimoku_elements(df)
-        self.pretty_plot(ax, df['Company Name'][0])
+        company_name = df['Company Name'][0]
+        self.pretty_plot(ax, company_name)
 
-        fig.savefig('alltimeplot.png', bbox_inches='tight', pad_inches=0.2)
+        output_dir = 'ichimoku_plots/'
+        create_dir_if_not_exists(output_dir)
+
+        fig.savefig(output_dir+company_name.replace(" ","_")+'_5y_plot.png', bbox_inches='tight', pad_inches=0.2)
+        plt.cla()
 
         red_cloud_intervals = self.get_pre_relevant_cloud_intervals_by_type(df,'red')
         green_cloud_intervals = self.get_pre_relevant_cloud_intervals_by_type(df,'green')
@@ -83,6 +90,7 @@ class Ichimoku():
         return fig,ax
 
     def save_relevant_cloud_figures(self, df, fig, ax, relevant_cloud_intervals, cloud_type):
+        
         for interval in relevant_cloud_intervals:
             interval_date_start = interval[0].date()
             interval_date_chikou_stop = interval[1].date()
@@ -96,8 +104,12 @@ class Ichimoku():
             fig, ax = self.plot_ichimoku_elements(relevant_df)
 
             self.format_relevant_plot(ax, relevant_df)
-            
-            fig.savefig('pre-'+cloud_type+'-plot'+str(interval_date_start)+'.png',bbox_inches='tight', pad_inches=0)
+
+            output_dir = 'ml_dataset/'+cloud_type+'/'
+            create_dir_if_not_exists(output_dir)
+
+            fig.savefig(output_dir+df['Company Name'][0]+'_'+str(interval_date_start)+'.png',bbox_inches='tight', pad_inches=0)
+            plt.cla()
 
     def format_relevant_plot(self, ax, relevant_df):
         max_price = relevant_df[['Close','Open']].max().max()
@@ -105,7 +117,9 @@ class Ichimoku():
         max_price_norm = max_price + (max_price*10/100)
         min_price_norm = min_price - (min_price*10/100)
         ax.set_ylim([min_price_norm, max_price_norm])
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        ax.set_xticks([])
+        ax.set_yticks([])
+        #ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
 
     def pretty_plot(self, ax, title):
