@@ -1,4 +1,5 @@
 import re
+import os
 
 def get_period_with_displacement(period):
     displacement = 26
@@ -15,3 +16,6 @@ def get_period_with_displacement(period):
         return period
     return period
 
+def create_dir_if_not_exists(folder_name):
+    if not os.path.exists(folder_name):
+        os.makedirs(folder_name)
