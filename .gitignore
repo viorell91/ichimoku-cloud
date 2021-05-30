@@ -4,3 +4,7 @@ Pipefile
 .vscode
 /ml_dataset
 /ichimoku_plots
+/ichimoku_plots_for_prediction
+/ichimoku_dataset
+/ichimoku_plots_for_test
+/ichimoku_plots_for_vse
