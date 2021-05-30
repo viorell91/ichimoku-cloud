@@ -60,26 +60,36 @@ class Ichimoku():
         self.ohcl_df = ohcl_df
         return ohcl_df
 
-    def plot(self):
+    def plot(self, output_dir, is_train: bool = False):
 
         # consider the cloud displacement of 26 days and senkou_span_b displacement (52 days)
         df = self.ohcl_df.iloc[80:,:]
 
         fig, ax = self.plot_ichimoku_elements(df)
-        company_name = df['Company Name'][0]
-        self.pretty_plot(ax, company_name)
+        company_name = str(df['Company Name'][0])
+        
 
-        output_dir = 'ichimoku_plots/'
         create_dir_if_not_exists(output_dir)
 
-        fig.savefig(output_dir+company_name.replace(" ","_")+'_5y_plot.png', bbox_inches='tight', pad_inches=0.2)
-        plt.cla()
+        if is_train:
+            red_cloud_intervals = self.get_pre_relevant_cloud_intervals_by_type(df,'red')
+            green_cloud_intervals = self.get_pre_relevant_cloud_intervals_by_type(df,'green')
 
-        red_cloud_intervals = self.get_pre_relevant_cloud_intervals_by_type(df,'red')
-        green_cloud_intervals = self.get_pre_relevant_cloud_intervals_by_type(df,'green')
-
-        self.save_relevant_cloud_figures(df, fig, ax, red_cloud_intervals, 'red')
-        self.save_relevant_cloud_figures(df, fig, ax, green_cloud_intervals, 'green')
+            self.save_relevant_cloud_figures(df, fig, ax, red_cloud_intervals, 'red', output_dir)
+            self.save_relevant_cloud_figures(df, fig, ax, green_cloud_intervals, 'green', output_dir)
+        else:
+            
+            # Save general ichimoku plots
+            self.pretty_plot(ax, company_name)
+            output_dir_general_plots = output_dir+'full_ichimoku_plots/'
+            create_dir_if_not_exists(output_dir_general_plots)
+            fig.savefig(output_dir_general_plots+company_name.replace(" ","_").replace("/", "_")+'_10y_plot.png', bbox_inches='tight', pad_inches=0.2)
+            
+            # Save cropped ichimoku plots
+            self.format_relevant_plot(ax, df)
+            fig.savefig(output_dir+company_name.replace(" ","_").replace("/", "_")+'.png', bbox_inches='tight', pad_inches=0.2)
+            
+            plt.cla()
 
     def plot_ichimoku_elements(self, df):
         fig, axlist = mpf.plot(df,type='candle',style='yahoo',figratio=(18,8),show_nontrading=True,returnfig=True)
@@ -89,7 +99,7 @@ class Ichimoku():
         mpf.plot(df,type='candle',style='yahoo',ax=ax,addplot=lines,show_nontrading=True)
         return fig,ax
 
-    def save_relevant_cloud_figures(self, df, fig, ax, relevant_cloud_intervals, cloud_type):
+    def save_relevant_cloud_figures(self, df, fig, ax, relevant_cloud_intervals, cloud_type, output_dir):
         
         for interval in relevant_cloud_intervals:
             interval_date_start = interval[0].date()
@@ -105,10 +115,13 @@ class Ichimoku():
 
             self.format_relevant_plot(ax, relevant_df)
 
-            output_dir = 'ml_dataset/'+cloud_type+'/'
-            create_dir_if_not_exists(output_dir)
+            output_dir_final = output_dir+cloud_type+'/'
+            create_dir_if_not_exists(output_dir_final)
 
-            fig.savefig(output_dir+df['Company Name'][0]+'_'+str(interval_date_start)+'.png',bbox_inches='tight', pad_inches=0)
+            figure_name = df['Company Name'][0].replace("/", "_") if df['Company Name'][0] is not None else df['Company Name'][0]
+            if figure_name is not None:
+                fig.savefig(output_dir_final+figure_name+'_'+str(interval_date_start)+'.png',bbox_inches='tight', pad_inches=0)
+            plt.close(fig)
             plt.cla()
 
     def format_relevant_plot(self, ax, relevant_df):
@@ -119,12 +132,13 @@ class Ichimoku():
         ax.set_ylim([min_price_norm, max_price_norm])
         ax.set_xticks([])
         ax.set_yticks([])
-        #ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        ax.set_title('')
+        ax.xaxis.set_major_formatter('')
 
 
     def pretty_plot(self, ax, title):
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-        ax.set_title('Ichimoku Cloud Chart for '+ title)
+        ax.set_title('Ichimoku Cloud Chart for '+ str(title))
 
     def plot_ichimoku_cloud(self, df, ax):
         date_axis = df.index
