@@ -1,4 +1,4 @@
-# Ichimoku Could 
+# Ichimoku Cloud 
 
 ## Description
 Generic tool for plotting beautiful Ichimoku clouds in python + mplfinance. 
